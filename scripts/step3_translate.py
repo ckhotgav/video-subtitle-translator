@@ -20,6 +20,7 @@ def translate(segments: list[dict], config: dict) -> list[dict]:
 
     batch_size = config.get("translation_batch_size", 30)
     max_retry = config.get("max_retry", 3)
+    source_lang = config.get("source_language", "auto")
     target_lang = config.get("target_language", "繁體中文")
 
     zh_segments = []
@@ -38,7 +39,7 @@ def translate(segments: list[dict], config: dict) -> list[dict]:
         for attempt in range(1, max_retry + 1):
             try:
                 translated_batch = _translate_batch(
-                    model, batch, target_lang,
+                    model, batch, source_lang, target_lang,
                     retry=(attempt > 1), prev_errors=last_errors
                 )
                 errors = validate_translation(batch, translated_batch)
@@ -77,6 +78,7 @@ def translate(segments: list[dict], config: dict) -> list[dict]:
 def _translate_batch(
     model,
     batch: list[dict],
+    source_lang: str,
     target_lang: str,
     retry: bool = False,
     prev_errors: list = None,
@@ -98,7 +100,8 @@ def _translate_batch(
             "請嚴格遵守格式，每行必須是「序號|譯文」，不得合併或增刪行。\n"
         )
 
-    prompt = f"""你是專業字幕翻譯師，請將以下英文字幕逐行翻譯為{target_lang}。
+    source_desc = f"（來源語言：{source_lang}）" if source_lang != "auto" else ""
+    prompt = f"""你是專業字幕翻譯師，請將以下字幕{source_desc}逐行翻譯為{target_lang}。
 {retry_note}
 【嚴格規則，違反將導致重新執行】
 1. 輸出格式：每行必須是「序號|譯文」，序號與原文完全相同

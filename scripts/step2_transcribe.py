@@ -12,15 +12,17 @@ def transcribe(audio_path: str, output_dir: str, config: dict) -> list[dict]:
     回傳：segments 列表
     """
     client = Groq(api_key=config["groq_api_key"])
+    source_lang = config.get("source_language", "auto")
+    whisper_lang = None if source_lang == "auto" else source_lang
 
-    print(f"[step2] 上傳音訊至 Groq Whisper...")
+    print(f"[step2] 上傳音訊至 Groq Whisper (來源語言: {source_lang})...")
     with open(audio_path, "rb") as f:
         response = client.audio.transcriptions.create(
             file=(os.path.basename(audio_path), f),
             model=config.get("whisper_model", "whisper-large-v3-turbo"),
             response_format="verbose_json",
             timestamp_granularities=["segment"],
-            language="en",
+            language=whisper_lang,
         )
 
     raw_segments = response.segments
@@ -30,10 +32,24 @@ def transcribe(audio_path: str, output_dir: str, config: dict) -> list[dict]:
     print(f"[step2] 切段完成，共 {len(segments)} 段")
 
     # 寫出暫存 SRT（供除錯或指定步驟使用）
-    raw_srt_path = os.path.join(output_dir, "_en_raw.srt")
+    raw_srt_path = os.path.join(output_dir, f"_{source_lang}_raw.srt")
     _write_srt(segments, raw_srt_path)
 
     return segments
+
+
+def _split_text(text: str, lang: str) -> list[str]:
+    """根據語系判斷如何切割文字（英文切單字，中日文切字元）"""
+    if lang in ["zh", "ja"] or (" " not in text.strip() and len(text) > 10):
+        return list(text)
+    return text.split()
+
+
+def _join_chunk(chunk: list[str], lang: str) -> str:
+    """根據語系組合切段文字"""
+    if lang in ["zh", "ja"]:
+        return "".join(chunk)
+    return " ".join(chunk)
 
 
 def _resegment(raw_segments, config) -> list[dict]:
@@ -41,6 +57,7 @@ def _resegment(raw_segments, config) -> list[dict]:
     min_sec = config.get("segment_min_sec", 1.0)
     max_sec = config.get("segment_max_sec", 5.0)
     max_chars = config.get("segment_max_chars", 80)
+    source_lang = config.get("source_language", "auto")
 
     result = []
     idx = 1
@@ -54,7 +71,7 @@ def _resegment(raw_segments, config) -> list[dict]:
 
         # 太長需要切分
         if duration > max_sec or len(text) > max_chars:
-            words = text.split()
+            words = _split_text(text, source_lang)
             if not words:
                 continue
 
@@ -64,12 +81,16 @@ def _resegment(raw_segments, config) -> list[dict]:
 
             for i, word in enumerate(words):
                 chunk.append(word)
-                chunk_text = " ".join(chunk)
+                chunk_text = _join_chunk(chunk, source_lang)
                 chunk_duration = time_per_word * len(chunk)
 
+                # 中日文每字元資訊量大，最大字數可適當降低
+                effective_max_chars = min(max_chars, 30) if source_lang in ["zh", "ja"] else max_chars
+                min_len = 8 if source_lang in ["zh", "ja"] else 20
+
                 should_flush = (
-                    (chunk_duration >= min_sec and len(chunk_text) >= 20) or
-                    len(chunk_text) > max_chars or
+                    (chunk_duration >= min_sec and len(chunk_text) >= min_len) or
+                    len(chunk_text) > effective_max_chars or
                     i == len(words) - 1
                 )
 

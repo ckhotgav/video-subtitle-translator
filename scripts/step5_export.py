@@ -10,23 +10,40 @@ def export(
     zh_segments: list[dict],
     input_path: str,
     output_dir: str,
+    config: dict,
 ) -> tuple[str, str]:
     """
     輸出原文和譯文 SRT 到 output_dir。
-    回傳 (en_srt_path, zh_srt_path)。
+    回傳 (source_srt_path, target_srt_path)。
     """
     os.makedirs(output_dir, exist_ok=True)
     stem = os.path.splitext(os.path.basename(input_path))[0]
 
-    en_path = os.path.join(output_dir, f"{stem}_en.srt")
-    zh_path = os.path.join(output_dir, f"{stem}_zh.srt")
+    source_lang = config.get("source_language", "auto")
+    target_lang = config.get("target_language", "繁體中文")
 
-    _write_srt(en_segments, en_path)
-    _write_srt(zh_segments, zh_path)
+    def get_suffix(lang_str):
+        lang_str = lang_str.lower()
+        if "繁體中文" in lang_str or "zh" in lang_str or "中文" in lang_str:
+            return "zh"
+        elif "ja" in lang_str or "日" in lang_str:
+            return "ja"
+        elif "en" in lang_str or "英" in lang_str:
+            return "en"
+        return lang_str[:3]
 
-    print(f"[step5] ✅ 原文字幕：{en_path}（{len(en_segments)} 段）")
-    print(f"[step5] ✅ 繁中字幕：{zh_path}（{len(zh_segments)} 段）")
-    return en_path, zh_path
+    src_suffix = get_suffix(source_lang)
+    tgt_suffix = get_suffix(target_lang)
+
+    source_path = os.path.join(output_dir, f"{stem}_{src_suffix}.srt")
+    target_path = os.path.join(output_dir, f"{stem}_{tgt_suffix}.srt")
+
+    _write_srt(en_segments, source_path)
+    _write_srt(zh_segments, target_path)
+
+    print(f"[step5] ✅ 原文字幕：{source_path}（{len(en_segments)} 段）")
+    print(f"[step5] ✅ 譯文字幕：{target_path}（{len(zh_segments)} 段）")
+    return source_path, target_path
 
 
 def _write_srt(segments: list[dict], path: str):

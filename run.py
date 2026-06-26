@@ -51,18 +51,57 @@ def load_config(config_path: str = "config.yaml") -> dict:
 def main():
     check_dependencies()
     parser = argparse.ArgumentParser(
-
-        description="Video Subtitle Translator：英文影片 → 繁體中文字幕"
+        description="Video Subtitle Translator：通用影音多語言字幕翻譯 Pipeline"
     )
     parser.add_argument("input", help="影片或音檔路徑")
     parser.add_argument("--output", default="output", help="輸出目錄（預設：./output）")
     parser.add_argument("--config", default="config.yaml", help="設定檔路徑")
     parser.add_argument("--step", type=int, help="只執行指定步驟（1-5，除錯用）")
     parser.add_argument("--verbose", action="store_true", help="顯示詳細 log")
+    parser.add_argument("--source-lang", help="來源語言 (例如: en, zh, ja, auto)")
+    parser.add_argument("--target-lang", help="目標翻譯語言 (例如: 繁體中文, English, 日本語)")
     args = parser.parse_args()
 
     # 載入設定
     config = load_config(args.config)
+
+    # 決定來源與目標語言
+    source_lang = args.source_lang or config.get("source_language")
+    target_lang = args.target_lang or config.get("target_language")
+
+    # 如果無設定，互動式詢問
+    if not source_lang:
+        try:
+            val = input("請選擇來源語言 [1: auto (自動偵測), 2: en (英文), 3: zh (中文), 4: ja (日文)] (或直接輸入 ISO 代碼) [預設: auto]: ").strip()
+            if val == "1" or val == "":
+                source_lang = "auto"
+            elif val == "2":
+                source_lang = "en"
+            elif val == "3":
+                source_lang = "zh"
+            elif val == "4":
+                source_lang = "ja"
+            else:
+                source_lang = val
+        except (KeyboardInterrupt, EOFError):
+            source_lang = "auto"
+
+    if not target_lang:
+        try:
+            val = input("請選擇目標翻譯語言 [1: 繁體中文, 2: English, 3: 日本語] (或直接輸入語言名稱) [預設: 繁體中文]: ").strip()
+            if val == "1" or val == "":
+                target_lang = "繁體中文"
+            elif val == "2":
+                target_lang = "English"
+            elif val == "3":
+                target_lang = "日本語"
+            else:
+                target_lang = val
+        except (KeyboardInterrupt, EOFError):
+            target_lang = "繁體中文"
+
+    config["source_language"] = source_lang
+    config["target_language"] = target_lang
 
     input_path = args.input
     output_dir = args.output
@@ -88,13 +127,13 @@ def main():
         en_segments = transcribe(audio_path, output_dir, config)
     else:
         # 從暫存 SRT 讀取（若指定單步）
-        en_segments = _load_srt(os.path.join(output_dir, "_en_raw.srt"))
+        en_segments = _load_srt(os.path.join(output_dir, f"_{source_lang}_raw.srt"))
 
     # ── Step 3：翻譯 ──────────────────────────────────
     if args.step is None or args.step == 3:
         zh_segments = translate(en_segments, config)
     else:
-        zh_segments = _load_srt(os.path.join(output_dir, "_zh_raw.srt"))
+        zh_segments = _load_srt(os.path.join(output_dir, f"_translated_raw.srt"))
 
     # ── Step 4：最終驗證 ──────────────────────────────
     if args.step is None or args.step == 4:
@@ -113,13 +152,13 @@ def main():
 
     # ── Step 5：輸出 ──────────────────────────────────
     if args.step is None or args.step == 5:
-        en_path, zh_path = export(en_segments, zh_segments, input_path, output_dir)
+        source_path, target_path = export(en_segments, zh_segments, input_path, output_dir, config)
 
         print()
         print("=" * 50)
         print("🎉 完成！")
-        print(f"   📄 原文字幕：{en_path}")
-        print(f"   🇹🇼 繁中字幕：{zh_path}")
+        print(f"   📄 原文字幕：{source_path}")
+        print(f"   🇹🇼 譯文字幕：{target_path}")
         print("=" * 50)
 
 
