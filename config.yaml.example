@@ -6,7 +6,7 @@ groq_api_key: "YOUR_GROQ_API_KEY"        # 申請網址：https://console.groq.c
 gemini_api_key: "YOUR_GEMINI_API_KEY"    # 申請網址：https://aistudio.google.com
 
 # ── 翻譯設定 ─────────────────────────────────────────
-source_language: "auto"               # 來源語系 (例如: auto, en, zh, ja)
+source_language: "en"                 # 來源語系 (例如: en, auto, zh, ja)
 target_language: "繁體中文"            # 目標翻譯語言 (例如: 繁體中文, English, 日本語)
 translation_batch_size: 30            # 每批翻譯幾段（建議 20-50；若常失敗可調低至 15）
 max_retry: 3                          # 驗證失敗最多重試次數

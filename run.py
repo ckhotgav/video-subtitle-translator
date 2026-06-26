@@ -72,11 +72,11 @@ def main():
     # 如果無設定，互動式詢問
     if not source_lang:
         try:
-            val = input("請選擇來源語言 [1: auto (自動偵測), 2: en (英文), 3: zh (中文), 4: ja (日文)] (或直接輸入 ISO 代碼) [預設: auto]: ").strip()
+            val = input("請選擇來源語言 [1: en (英文), 2: auto (自動偵測), 3: zh (中文), 4: ja (日文)] (或直接輸入 ISO 代碼) [預設: en]: ").strip()
             if val == "1" or val == "":
-                source_lang = "auto"
-            elif val == "2":
                 source_lang = "en"
+            elif val == "2":
+                source_lang = "auto"
             elif val == "3":
                 source_lang = "zh"
             elif val == "4":
@@ -84,7 +84,7 @@ def main():
             else:
                 source_lang = val
         except (KeyboardInterrupt, EOFError):
-            source_lang = "auto"
+            source_lang = "en"
 
     if not target_lang:
         try:
