@@ -89,3 +89,14 @@ python run.py input_videos/sample.mp4
   - 如何運用主管思維，將 AI 轉化為高效的高階助理
 
 歡迎訂閱頻道獲取更多關於 AI 自動化、影片製作與程式開發的最新實戰教學！
+
+---
+
+## 👨‍💻 關於作者
+
+**點哥（昇鴻）** — 哲學與生命教育背景的程式設計教師、正念催眠培訓師。
+相信「程式是表達思想的工具」，致力於讓完全不會寫程式的人也能透過 AI 實現自己的想法。
+
+- **GitHub**: [https://github.com/ckhotgav](https://github.com/ckhotgav)
+- **Facebook**: [https://facebook.com/jshpapa](https://facebook.com/jshpapa)
+
