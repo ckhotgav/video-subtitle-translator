@@ -8,7 +8,7 @@ ffprobe.exe
 ffprobe
 
 # Media input & output directories
-input_videos/
+input/
 output/
 
 # Python Cache & Environment

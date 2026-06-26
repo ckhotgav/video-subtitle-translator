@@ -76,7 +76,7 @@ pip install groq google-generativeai pydub pyyaml
 
 ### 🤖 讓 AI 幫忙直接執行 (AI Agent 協作)
 如果您正在與 AI 程式助手（如 Antigravity 或 Cursor）對話，您無需手動開終端機，可直接對 AI 下指令，請它代勞執行。例如：
-- *「幫我執行此專案，翻譯 input_videos/lecture.mp4，我要全部產出」*
+- *「幫我執行此專案，翻譯 input/lecture.mp4，我要全部產出」*
 - *「請用這個工具幫我整理 meeting.mp3 的會議紀錄，語系用繁體中文」*
 - *「執行 run.py 處理 test.mp3 並生成重點摘要」*
 
@@ -92,7 +92,7 @@ AI 助手會自動檢測環境、帶入參數並在您的終端機後端執行 P
 python run.py <影片或音訊路徑>
 
 # 範例
-python run.py input_videos/sample.mp4
+python run.py input/sample.mp4
 ```
 
 ### 常用命令參數
