@@ -2,7 +2,7 @@
 
 自動將英文影片/音訊進行語音辨識，並將字幕翻譯成繁體中文的完整自動化 Pipeline 工具。
 
-本專案由 [點哥工作坊](https://www.youtube.com/@%E9%BB%9E%E5%93%A5%E5%B7%A5%E4%BD%9C%E5%9D%8A) 頻道主導與推廣，旨在展示如何利用大語言模型 (LLM) 與 AI 語音辨識技術來簡化日常的影片字幕製作流程。
+本專案由 [點哥工作坊](https://www.youtube.com/@ckonetw) 頻道主導與推廣，旨在展示如何利用大語言模型 (LLM) 與 AI 語音辨識技術來簡化日常的影片字幕製作流程。
 
 ---
 
@@ -81,7 +81,7 @@ python run.py input_videos/sample.mp4
 ## 📺 關於點哥工作坊
 
 本專案與教學資源由 **點哥工作坊** 提供支持。
-* **YouTube 頻道**：[點哥工作坊](https://www.youtube.com/@%E9%BB%9E%E5%93%A5%E5%B7%A5%E4%BD%9C%E5%9D%8A)
+* **YouTube 頻道**：[點哥工作坊](https://www.youtube.com/@ckonetw)
 * **核心分享內容**：
   - AI 代理 (AI Agent) 的實戰與系統化設計
   - 提示詞工程 (Prompt Engineering) 優化技巧
