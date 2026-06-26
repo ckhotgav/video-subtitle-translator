@@ -19,6 +19,7 @@ from scripts.step2_transcribe import transcribe
 from scripts.step3_translate import translate
 from scripts.step4_validate import validate_translation, validate_srt_file
 from scripts.step5_export import export
+from scripts.step6_summarize import summarize_transcript
 
 
 def check_dependencies():
@@ -51,7 +52,7 @@ def load_config(config_path: str = "config.yaml") -> dict:
 def main():
     check_dependencies()
     parser = argparse.ArgumentParser(
-        description="Video Subtitle Translator：通用影音多語言字幕翻譯 Pipeline"
+        description="Video Subtitle Translator & Summarizer：影音語音辨識、多語字幕翻譯、重點摘要與會議紀錄工具"
     )
     parser.add_argument("input", help="影片或音檔路徑")
     parser.add_argument("--output", default="output", help="輸出目錄（預設：./output）")
@@ -60,16 +61,18 @@ def main():
     parser.add_argument("--verbose", action="store_true", help="顯示詳細 log")
     parser.add_argument("--source-lang", help="來源語言 (例如: en, zh, ja, auto)")
     parser.add_argument("--target-lang", help="目標翻譯語言 (例如: 繁體中文, English, 日本語)")
+    parser.add_argument("--task", choices=["subs", "summary", "minutes", "all"], help="任務模式：subs(字幕), summary(摘要), minutes(會議紀錄), all(全部)")
     args = parser.parse_args()
 
     # 載入設定
     config = load_config(args.config)
 
-    # 決定來源與目標語言
+    # 決定來源、目標語言與任務
     source_lang = args.source_lang or config.get("source_language")
     target_lang = args.target_lang or config.get("target_language")
+    task_type = args.task or config.get("task")
 
-    # 如果無設定，互動式詢問
+    # 如果無設定來源語言，互動式詢問
     if not source_lang:
         try:
             val = input("請選擇來源語言 [1: en (英文), 2: auto (自動偵測), 3: zh (中文), 4: ja (日文)] (或直接輸入 ISO 代碼) [預設: en]: ").strip()
@@ -86,6 +89,7 @@ def main():
         except (KeyboardInterrupt, EOFError):
             source_lang = "en"
 
+    # 如果無設定目標語言，互動式詢問
     if not target_lang:
         try:
             val = input("請選擇目標翻譯語言 [1: 繁體中文, 2: English, 3: 日本語] (或直接輸入語言名稱) [預設: 繁體中文]: ").strip()
@@ -100,8 +104,29 @@ def main():
         except (KeyboardInterrupt, EOFError):
             target_lang = "繁體中文"
 
+    # 如果無設定任務，互動式詢問
+    if not task_type:
+        try:
+            print("\n請選擇要執行的任務功能：")
+            print("  [1] 雙語字幕翻譯 (輸出 .srt 字幕檔)")
+            print("  [2] 重點摘要整理 (輸出 .md 摘要)")
+            print("  [3] 會議紀錄整理 (輸出 .md 會議紀錄)")
+            print("  [4] 全部執行 (雙語字幕 + 重點摘要 + 會議紀錄)")
+            val = input("請選擇功能 [1-4] [預設: 1]: ").strip()
+            if val == "2":
+                task_type = "summary"
+            elif val == "3":
+                task_type = "minutes"
+            elif val == "4":
+                task_type = "all"
+            else:
+                task_type = "subs"
+        except (KeyboardInterrupt, EOFError):
+            task_type = "subs"
+
     config["source_language"] = source_lang
     config["target_language"] = target_lang
+    config["task"] = task_type
 
     input_path = args.input
     output_dir = args.output
@@ -111,9 +136,10 @@ def main():
         sys.exit(1)
 
     print("=" * 50)
-    print("🎬 Video Subtitle Translator")
+    print("🎬 Video Subtitle Translator & Summarizer")
     print(f"   輸入：{input_path}")
     print(f"   輸出：{output_dir}/")
+    print(f"   任務模式：{task_type}")
     print("=" * 50)
 
     # ── Step 1：抽取音訊 ──────────────────────────────
@@ -129,37 +155,50 @@ def main():
         # 從暫存 SRT 讀取（若指定單步）
         en_segments = _load_srt(os.path.join(output_dir, f"_{source_lang}_raw.srt"))
 
-    # ── Step 3：翻譯 ──────────────────────────────────
-    if args.step is None or args.step == 3:
-        zh_segments = translate(en_segments, config)
-    else:
-        zh_segments = _load_srt(os.path.join(output_dir, f"_translated_raw.srt"))
-
-    # ── Step 4：最終驗證 ──────────────────────────────
-    if args.step is None or args.step == 4:
-        errors = validate_translation(en_segments, zh_segments)
-        if errors:
-            print(f"⚠️  最終驗證發現 {len(errors)} 個問題：")
-            for e in errors[:5]:
-                print(f"   - {e}")
-            print("   （已保留原文的段落標記為 [翻譯失敗]）")
+    # ── Step 3-5：字幕翻譯與導出（僅在 subs 或 all 模式執行） ──
+    need_subs = task_type in ["subs", "all"]
+    source_path, target_path = None, None
+    if need_subs:
+        if args.step is None or args.step == 3:
+            zh_segments = translate(en_segments, config)
         else:
-            print("[step4] ✅ 驗證通過：時間碼完全對齊，段落數一致")
+            zh_segments = _load_srt(os.path.join(output_dir, f"_translated_raw.srt"))
 
-        srt_errors = validate_srt_file(zh_segments)
-        if srt_errors:
-            print(f"⚠️  SRT 完整性問題：{srt_errors[:3]}")
+        if args.step is None or args.step == 4:
+            errors = validate_translation(en_segments, zh_segments)
+            if errors:
+                print(f"⚠️  最終驗證發現 {len(errors)} 個問題：")
+                for e in errors[:5]:
+                    print(f"   - {e}")
+                print("   （已保留原文的段落標記為 [翻譯失敗]）")
+            else:
+                print("[step4] ✅ 驗證通過：時間碼完全對齊，段落數一致")
 
-    # ── Step 5：輸出 ──────────────────────────────────
-    if args.step is None or args.step == 5:
-        source_path, target_path = export(en_segments, zh_segments, input_path, output_dir, config)
+            srt_errors = validate_srt_file(zh_segments)
+            if srt_errors:
+                print(f"⚠️  SRT 完整性問題：{srt_errors[:3]}")
 
-        print()
-        print("=" * 50)
-        print("🎉 完成！")
+        if args.step is None or args.step == 5:
+            source_path, target_path = export(en_segments, zh_segments, input_path, output_dir, config)
+
+    # ── Step 6：重點摘要整理 & 會議紀錄整理 ──
+    summary_path, minutes_path = None, None
+    if task_type in ["summary", "all"]:
+        summary_path = summarize_transcript(en_segments, output_dir, input_path, config, "summary")
+    if task_type in ["minutes", "all"]:
+        minutes_path = summarize_transcript(en_segments, output_dir, input_path, config, "minutes")
+
+    print()
+    print("=" * 50)
+    print("🎉 任務執行完畢！")
+    if need_subs and source_path and target_path:
         print(f"   📄 原文字幕：{source_path}")
         print(f"   🇹🇼 譯文字幕：{target_path}")
-        print("=" * 50)
+    if summary_path:
+        print(f"   📝 重點摘要：{summary_path}")
+    if minutes_path:
+        print(f"   💼 會議紀錄：{minutes_path}")
+    print("=" * 50)
 
 
 def _load_srt(path: str) -> list[dict]:
