@@ -1,0 +1,29 @@
+# Video Subtitle Translator 設定檔範本
+# 請將此檔案複製並重命名為 config.yaml，然後填入您的 API 金鑰
+
+# ── API 金鑰 ──────────────────────────────────────────
+groq_api_key: "YOUR_GROQ_API_KEY"        # 申請網址：https://console.groq.com
+gemini_api_key: "YOUR_GEMINI_API_KEY"    # 申請網址：https://aistudio.google.com
+
+# ── 翻譯設定 ─────────────────────────────────────────
+target_language: "繁體中文"
+translation_batch_size: 30            # 每批翻譯幾段（建議 20-50；若常失敗可調低至 15）
+max_retry: 3                          # 驗證失敗最多重試次數
+
+# 可選：專業領域提示（提升術語翻譯品質）
+# domain: "tech"   # tech / medical / education / business
+
+# 可選：術語對照表（強制指定翻譯）
+# glossary:
+#   "machine learning": "機器學習"
+#   "neural network": "神經網路"
+#   "fine-tuning": "微調"
+
+# ── 語音辨識設定 ──────────────────────────────────────
+whisper_model: "whisper-large-v3-turbo"
+max_file_size_mb: 24                  # Groq 限制 25MB，留 1MB 緩衝
+
+# ── 字幕切段設定 ──────────────────────────────────────
+segment_min_sec: 1.0                  # 最短字幕段（秒）
+segment_max_sec: 5.0                  # 最長字幕段（秒）
+segment_max_chars: 80                 # 每段英文最多字元數

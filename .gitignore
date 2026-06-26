@@ -1,0 +1,29 @@
+# API Keys & Secrets
+config.yaml
+
+# Local Executables
+ffmpeg.exe
+ffmpeg
+ffprobe.exe
+ffprobe
+
+# Media input & output directories
+input_videos/
+output/
+
+# Python Cache & Environment
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
